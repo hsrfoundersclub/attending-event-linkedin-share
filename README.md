@@ -1,36 +1,61 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# HSR Founders Club Promo Generator
+
+A simple, user-friendly web application for creating personalized promotional images for HSR Founders Club events.
+
+## Features
+
+- **Personalized Promo Images**: Generate professional-looking promotional images with your name, role, company, and profile photo.
+- **Live Preview**: See how your promotional image looks as you input your information.
+- **Easy Copying**: Copy both the image and promotional text to your clipboard with a single click.
+- **Form Validation**: Proper validation to ensure all necessary information is provided.
+- **Persistent Data**: Your information is saved in the browser, so you won't lose your progress if you refresh the page.
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Node.js 14.0 or later
+- npm or pnpm
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Installation
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Clone the repository:
+   ```bash
+   git clone <repository-url>
+   cd hsrfc-image-promo
+   ```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+2. Install the dependencies:
+   ```bash
+   pnpm install
+   # or
+   npm install
+   ```
 
-## Learn More
+3. Run the development server:
+   ```bash
+   pnpm dev
+   # or
+   npm run dev
+   ```
 
-To learn more about Next.js, take a look at the following resources:
+4. Open [http://localhost:3000](http://localhost:3000) in your browser to see the application.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## How to Use
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. **Enter Your Information**: Fill in your name, role, and company in the provided form fields.
+2. **Upload a Profile Photo**: Click on the upload area to select a profile photo.
+3. **Preview Your Promo Image**: The right side of the screen shows a live preview of your personalized promotional image.
+4. **Copy to Clipboard**: 
+   - Click "Copy Image" to copy the image to your clipboard.
+   - Click "Copy Text" to copy the promotional text to your clipboard.
 
-## Deploy on Vercel
+## Built With
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- [Next.js](https://nextjs.org/) - The React framework for production
+- [Tailwind CSS](https://tailwindcss.com/) - A utility-first CSS framework
+- [html-to-image](https://github.com/bubkoo/html-to-image) - A client-side library to generate images from DOM nodes
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## License
+
+This project is open source and available under the [MIT License](LICENSE).

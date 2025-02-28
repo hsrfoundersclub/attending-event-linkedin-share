@@ -1,101 +1,146 @@
-import Image from "next/image";
+"use client";
+
+import { useState, useEffect } from "react";
+import PromoForm from "@/components/PromoForm";
+import PromoImagePreview from "@/components/PromoImagePreview";
+import type { FormData } from "@/components/PromoForm";
+
+const initialFormData: FormData = {
+	name: "",
+	role: "",
+	company: "",
+	profileImage: null,
+};
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+	const [formData, setFormData] = useState<FormData>(initialFormData);
+	const [darkMode, setDarkMode] = useState(true);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
+	// Load form data and theme preference from local storage on initial load
+	useEffect(() => {
+		// Load form data
+		const savedData = localStorage.getItem("promoFormData");
+		if (savedData) {
+			try {
+				const parsedData = JSON.parse(savedData);
+				setFormData(parsedData);
+			} catch (error) {
+				console.error("Error parsing saved form data:", error);
+			}
+		}
+
+		// Load theme preference
+		const savedTheme = localStorage.getItem("darkMode");
+		if (savedTheme !== null) {
+			setDarkMode(savedTheme === "true");
+		} else {
+			// Check system preference if no saved preference
+			const prefersDarkMode = window.matchMedia(
+				"(prefers-color-scheme: dark)",
+			).matches;
+			setDarkMode(prefersDarkMode);
+		}
+	}, []);
+
+	// Save form data to local storage when it changes
+	useEffect(() => {
+		localStorage.setItem("promoFormData", JSON.stringify(formData));
+	}, [formData]);
+
+	// Save theme preference when it changes
+	useEffect(() => {
+		localStorage.setItem("darkMode", darkMode.toString());
+		// Apply dark mode class to document
+		if (darkMode) {
+			document.documentElement.classList.add("dark");
+		} else {
+			document.documentElement.classList.remove("dark");
+		}
+	}, [darkMode]);
+
+	const handleFormChange = (newData: FormData) => {
+		setFormData(newData);
+	};
+
+	const toggleDarkMode = () => {
+		setDarkMode(!darkMode);
+	};
+
+	return (
+		<div
+			className={`min-h-screen py-12 px-4 ${darkMode ? "bg-gray-900" : "bg-gray-50"} transition-colors duration-200`}
+		>
+			<div className="max-w-6xl mx-auto">
+				<header className="mb-10 text-center">
+					<h1
+						className={`text-4xl font-bold mb-4 ${darkMode ? "text-white" : "text-gray-900"} transition-colors duration-200`}
+					>
+						HSR Founders Club Promo Generator
+					</h1>
+					{/* <button
+						type="button"
+						onClick={toggleDarkMode}
+						className="absolute right-4 top-0 p-2 rounded-full transition-colors duration-200"
+						aria-label="Toggle dark mode"
+					>
+						{darkMode ? (
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								className="h-6 w-6 text-yellow-300"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+								aria-hidden="true"
+							>
+								<title>Light mode</title>
+								<path
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									strokeWidth={2}
+									d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+								/>
+							</svg>
+						) : (
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								className="h-6 w-6 text-gray-700"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+								aria-hidden="true"
+							>
+								<title>Dark mode</title>
+								<path
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									strokeWidth={2}
+									d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+								/>
+							</svg>
+						)}
+					</button> */}
+				</header>
+
+				<div
+					className={`rounded-xl overflow-hidden shadow-2xl ${darkMode ? "bg-gray-800/50 ring-1 ring-gray-700" : "bg-white/90 ring-1 ring-gray-200"}`}
+				>
+					<div className="md:flex">
+						{/* Form section */}
+						<div className="md:w-2/5 p-6 md:border-r md:border-gray-700">
+							<PromoForm
+								formData={formData}
+								onChange={handleFormChange}
+								darkMode={darkMode}
+							/>
+						</div>
+
+						{/* Preview section */}
+						<div className="p-6 md:p-8 md:w-3/5 flex items-center justify-center">
+							<PromoImagePreview formData={formData} darkMode={darkMode} />
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	);
 }
