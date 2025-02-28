@@ -43,14 +43,6 @@ export default function PromoImagePreview({
 		try {
 			// Create the promise for image conversion first
 			const makeImagePromise = async () => {
-				// if (!imageRef.current)
-				// 	throw new Error("Image element is not available");
-				// const dataUrl = await toPng(imageRef.current, {
-				// 	quality: 1.0,
-				// 	pixelRatio: 2,
-				// 	cacheBust: true,
-				// });
-
 				const buildPng = async () => {
 					if (!imageRef.current)
 						throw new Error("Image element is not available");
