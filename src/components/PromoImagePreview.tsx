@@ -63,7 +63,7 @@ export default function PromoImagePreview({
 	};
 
 	return (
-		<div className="flex flex-col items-center space-y-5 w-full">
+		<div className="flex flex-col items-center space-y-3 sm:space-y-5 w-full">
 			<div
 				ref={imageRef}
 				className="relative w-full max-w-md bg-black shadow-xl rounded-lg overflow-hidden"
@@ -79,15 +79,15 @@ export default function PromoImagePreview({
 					className="absolute inset-0 w-full h-full object-cover"
 				/>
 
-				{/* Profile Photo */}
+				{/* Profile Photo - using relative sizing for better responsiveness */}
 				{formData.profileImage && (
 					<div
 						className="absolute"
 						style={{
-							top: "157px",
-							left: "247px",
-							width: "117px",
-							height: "117px",
+							top: "35.1%",
+							left: "55.2%",
+							width: "26%",
+							height: "26%",
 						}}
 					>
 						<div className="w-full h-full overflow-hidden">
@@ -100,118 +100,117 @@ export default function PromoImagePreview({
 					</div>
 				)}
 
-				{/* Name */}
+				{/* Name - using relative sizing for better responsiveness */}
 				{formData.name && (
 					<div
 						className="absolute text-center"
 						style={{
-							top: "292px",
+							top: "64.6%" /* converted from 292px using percentage of container */,
 							left: "68%",
 							transform: "translateX(-50%)",
 							width: "100%",
 						}}
 					>
-						<h2
-							className="text-white text-xl font-bold"
-							style={{ fontSize: "16px" }}
-						>
+						<p className="text-white font-bold text-[0.79rem] sm:text-[1.125rem]">
 							{formData.name}
-						</h2>
+						</p>
 					</div>
 				)}
 
-				{/* Role */}
+				{/* Role - using relative sizing for better responsiveness */}
 				{formData.role && (
 					<div
 						className="absolute text-center"
 						style={{
-							top: "311px",
+							top: "69%" /* converted from 311px using percentage of container */,
 							left: "68%",
 							transform: "translateX(-50%)",
 							width: "100%",
 						}}
 					>
-						<p className="text-white" style={{ fontSize: "12px" }}>
+						<p className="text-white text-[0.7rem] sm:text-[1rem]">
 							{formData.role}
 						</p>
 					</div>
 				)}
 
-				{/* Company */}
+				{/* Company - using relative sizing for better responsiveness */}
 				{formData.company && (
 					<div
 						className="absolute text-center"
 						style={{
-							top: "328px",
+							top: "73%" /* converted from 328px using percentage of container */,
 							left: "68%",
 							transform: "translateX(-50%)",
 							width: "100%",
 						}}
 					>
-						<p className="text-white" style={{ fontSize: "12px" }}>
+						<p className="text-white text-[0.7rem] sm:text-[0.875rem]">
 							{formData.company}
 						</p>
 					</div>
 				)}
 			</div>
 
+			{/* Copy buttons - moved here between image and text block */}
+			<div className="flex flex-col sm:flex-row justify-center space-y-2 sm:space-y-0 sm:space-x-4 w-full max-w-md">
+				<button
+					type="button"
+					onClick={copyImageToClipboard}
+					className="px-4 sm:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-green-600 to-green-700 text-white font-medium rounded-md hover:from-green-700 hover:to-green-800 transition-all duration-200 flex items-center justify-center shadow-md cursor-pointer text-[0.875rem]"
+				>
+					<svg
+						className="w-3 h-3 sm:w-4 sm:h-4 mr-2"
+						fill="none"
+						stroke="currentColor"
+						viewBox="0 0 24 24"
+						xmlns="http://www.w3.org/2000/svg"
+						aria-hidden="true"
+					>
+						<path
+							strokeLinecap="round"
+							strokeLinejoin="round"
+							strokeWidth="2"
+							d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+						/>
+					</svg>
+					Copy Image
+				</button>
+				<button
+					type="button"
+					onClick={copyTextToClipboard}
+					className="px-4 sm:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium rounded-md hover:from-blue-700 hover:to-blue-800 transition-all duration-200 flex items-center justify-center shadow-md cursor-pointer text-[0.875rem]"
+				>
+					<svg
+						className="w-3 h-3 sm:w-4 sm:h-4 mr-2"
+						fill="none"
+						stroke="currentColor"
+						viewBox="0 0 24 24"
+						xmlns="http://www.w3.org/2000/svg"
+						aria-hidden="true"
+					>
+						<path
+							strokeLinecap="round"
+							strokeLinejoin="round"
+							strokeWidth="2"
+							d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+						/>
+					</svg>
+					Copy Text
+				</button>
+			</div>
+
 			<div
-				className={`w-full max-w-md p-4 rounded-lg ${darkMode ? "bg-gray-800/70" : "bg-gray-100"} transition-colors duration-200`}
+				className={`w-full max-w-md p-3 sm:p-4 rounded-lg ${darkMode ? "bg-gray-800/70" : "bg-gray-100"} transition-colors duration-200`}
 			>
 				<div
-					className={`prose prose-sm ${darkMode ? "prose-invert" : ""} max-w-none mb-3`}
+					className={`prose prose-sm ${darkMode ? "prose-invert" : ""} max-w-none`}
 				>
-					<p>
+					<p className="text-[0.875rem]">
 						Join me at HSR Founders Club PRODUCT WEEK 2025! March 3-6. It&apos;s
 						going to be an amazing event with great speakers and networking
 						opportunities. #HSRFC #ProductWeek2025
 					</p>
-				</div>
-				<div className="flex justify-center space-x-4">
-					<button
-						type="button"
-						onClick={copyTextToClipboard}
-						className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium rounded-md hover:from-blue-700 hover:to-blue-800 transition-all duration-200 flex items-center shadow-md cursor-pointer"
-					>
-						<svg
-							className="w-4 h-4 mr-2"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-							xmlns="http://www.w3.org/2000/svg"
-							aria-hidden="true"
-						>
-							<path
-								strokeLinecap="round"
-								strokeLinejoin="round"
-								strokeWidth="2"
-								d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-							/>
-						</svg>
-						Copy Text
-					</button>
-					<button
-						type="button"
-						onClick={copyImageToClipboard}
-						className="px-5 py-2.5 bg-gradient-to-r from-green-600 to-green-700 text-white font-medium rounded-md hover:from-green-700 hover:to-green-800 transition-all duration-200 flex items-center shadow-md cursor-pointer"
-					>
-						<svg
-							className="w-4 h-4 mr-2"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-							xmlns="http://www.w3.org/2000/svg"
-							aria-hidden="true"
-						>
-							<path
-								strokeLinecap="round"
-								strokeLinejoin="round"
-								strokeWidth="2"
-								d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-							/>
-						</svg>
-						Copy Image
-					</button>
 				</div>
 			</div>
 		</div>

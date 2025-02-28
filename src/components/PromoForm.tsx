@@ -77,12 +77,12 @@ export default function PromoForm({
 	return (
 		<div className="w-full">
 			<h2
-				className={`text-2xl font-semibold mb-6 ${darkMode ? "text-gray-100" : "text-gray-800"} transition-colors duration-200`}
+				className={`text-xl sm:text-2xl font-semibold mb-4 sm:mb-6 ${darkMode ? "text-gray-100" : "text-gray-800"} transition-colors duration-200`}
 			>
 				Your Information
 			</h2>
 
-			<div className="space-y-5">
+			<div className="space-y-4 sm:space-y-5">
 				<div>
 					<label
 						htmlFor="name"
@@ -175,7 +175,7 @@ export default function PromoForm({
 						type="button"
 						onClick={triggerFileInput}
 						aria-label="Upload profile photo"
-						className={`mt-1 flex justify-center w-full px-6 pt-5 pb-6 border-2 border-dashed rounded-md cursor-pointer ${
+						className={`mt-1 flex justify-center w-full px-4 sm:px-6 pt-3 sm:pt-5 pb-4 sm:pb-6 border-2 border-dashed rounded-md cursor-pointer ${
 							errors.profileImage
 								? "border-red-500"
 								: darkMode
@@ -189,7 +189,7 @@ export default function PromoForm({
 									<img
 										src={formData.profileImage}
 										alt="User profile"
-										className="w-24 h-24 object-contain mb-2"
+										className="w-20 h-20 sm:w-24 sm:h-24 object-contain mb-2"
 									/>
 									<p
 										className={`text-sm ${darkMode ? "text-gray-300" : "text-gray-500"} transition-colors duration-200`}
@@ -200,7 +200,7 @@ export default function PromoForm({
 							) : (
 								<>
 									<svg
-										className={`mx-auto h-12 w-12 ${darkMode ? "text-gray-400" : "text-gray-400"} transition-colors duration-200`}
+										className={`mx-auto h-10 w-10 sm:h-12 sm:w-12 ${darkMode ? "text-gray-400" : "text-gray-400"} transition-colors duration-200`}
 										stroke="currentColor"
 										fill="none"
 										viewBox="0 0 48 48"
