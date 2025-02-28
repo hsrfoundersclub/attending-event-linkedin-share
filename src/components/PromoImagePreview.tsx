@@ -41,7 +41,7 @@ export default function PromoImagePreview({
 		if (!imageRef.current) return;
 
 		try {
-			// Create the promise for image conversion first
+			// Create the promise for image conversion first (fixing ios safari bug)
 			const makeImagePromise = async () => {
 				const buildPng = async () => {
 					if (!imageRef.current)
