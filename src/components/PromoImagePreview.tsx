@@ -41,90 +41,51 @@ export default function PromoImagePreview({
 		if (!imageRef.current) return;
 
 		try {
-			// Convert the HTML to a PNG with maximum quality and proper scaling
-			// fix for safari https://github.com/bubkoo/html-to-image/issues/361#issuecomment-1402537176
-			await toPng(imageRef.current, {
-				quality: 1.0,
-				pixelRatio: 2,
-				cacheBust: true,
-			});
-			await toPng(imageRef.current, {
-				quality: 1.0,
-				pixelRatio: 2,
-				cacheBust: true,
-			});
-			await toPng(imageRef.current, {
-				quality: 1.0,
-				pixelRatio: 2,
-				cacheBust: true,
-			});
-			const dataUrl = await toPng(imageRef.current, {
-				quality: 1.0,
-				pixelRatio: 2,
-				cacheBust: true,
-			});
+			// Create the promise for image conversion first
+			const makeImagePromise = async () => {
+				// if (!imageRef.current)
+				// 	throw new Error("Image element is not available");
+				// const dataUrl = await toPng(imageRef.current, {
+				// 	quality: 1.0,
+				// 	pixelRatio: 2,
+				// 	cacheBust: true,
+				// });
 
-			// Upload to ImgBB if on iOS
-			// if (isIOS()) {
-			// const formData = new FormData();
-			// const base64Image = dataUrl.split(",")[1];
-			// formData.append("image", base64Image);
+				const buildPng = async () => {
+					if (!imageRef.current)
+						throw new Error("Image element is not available");
+					const element = document.getElementById("image-node");
 
-			// const response = await fetch(
-			// 	`https://api.imgbb.com/1/upload?expiration=600&key=${process.env.NEXT_PUBLIC_IMGBB_API_KEY}`,
-			// 	{
-			// 		method: "POST",
-			// 		body: formData,
-			// 	},
-			// );
+					let dataUrl = "";
+					const minDataLength = 2000000;
+					let i = 0;
+					const maxAttempts = 10;
 
-			// const data = await response.json();
-			// alert(data.data.url);
-			// 	if (!data.success) {
-			// 		throw new Error("Failed to upload image");
-			// 	}
+					while (dataUrl.length < minDataLength && i < maxAttempts) {
+						dataUrl = await toPng(imageRef.current, {
+							quality: 1.0,
+							pixelRatio: 2,
+							cacheBust: true,
+						});
+						i += 1;
+					}
 
-			// 	// Use the copy-image-clipboard library for iOS
-			// 	// await copyImageToClipboardLib(data.data.url);
+					return dataUrl;
+				};
 
-			// 	const item = new ClipboardItem({
-			// 		"image/png": (async () => {
-			// 			const response = await fetch(dataUrl);
-			// 			return await response.blob();
-			// 		})(),
-			// 	});
-			// 	await navigator.clipboard.write([item]);
-			// } else {
-			// For non-iOS devices, use the original method
-			// const response = await fetch(dataUrl);
-			// const blob = await response.blob();
+				const dataUrl = await buildPng();
 
-			const item = new ClipboardItem({
-				"image/png": (async () => {
-					const response = await fetch(dataUrl);
-					return await response.blob();
-				})(),
+				const response = await fetch(dataUrl);
+				return await response.blob();
+			};
+
+			// Create ClipboardItem with the promise
+			const clipboardItem = new ClipboardItem({
+				"image/png": makeImagePromise(),
 			});
 
-			try {
-				await navigator.clipboard.write([item]);
-				// alert("it worked 😎");
-			} catch (e) {
-				alert(e);
-			}
-			// const makeImagePromise = async () => {
-			// 	const response = await fetch(dataUrl);
-			// 	return await response.blob();
-			// };
-
-			// // Copy image to clipboard
-			// await navigator.clipboard.write([
-			// 	new ClipboardItem({
-			// 		"image/png": makeImagePromise(),
-			// 	}),
-			// ]);
-			// }
-
+			// Perform clipboard operation
+			await navigator.clipboard.write([clipboardItem]);
 			toast.success("Image copied to clipboard!", {
 				position: "bottom-center",
 				duration: 3000,
