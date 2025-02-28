@@ -71,7 +71,7 @@ export default function Home() {
 			className={`min-h-screen py-6 sm:py-12 px-3 sm:px-4 ${darkMode ? "bg-gray-900" : "bg-gray-50"} transition-colors duration-200`}
 		>
 			<div className="max-w-6xl mx-auto">
-				<header className="mb-6 sm:mb-12 relative">
+				<header className="relative">
 					<div
 						className={`absolute inset-0 ${darkMode ? "bg-gradient-to-r from-blue-900/30 to-purple-900/30" : "bg-gradient-to-r from-blue-50 to-purple-50"} rounded-lg -z-10 blur-sm`}
 					/>
