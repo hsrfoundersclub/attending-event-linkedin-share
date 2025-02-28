@@ -38,8 +38,12 @@ export default function PromoImagePreview({
 		if (!imageRef.current) return;
 
 		try {
-			// Convert the HTML to a PNG
-			const dataUrl = await toPng(imageRef.current, { quality: 0.95 });
+			// Convert the HTML to a PNG with maximum quality and proper scaling
+			const dataUrl = await toPng(imageRef.current, {
+				quality: 1.0,
+				pixelRatio: 2,
+				cacheBust: true,
+			});
 
 			// Create a blob from the data URL
 			const response = await fetch(dataUrl);
