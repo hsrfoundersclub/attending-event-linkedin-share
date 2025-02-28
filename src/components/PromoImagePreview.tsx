@@ -66,19 +66,19 @@ export default function PromoImagePreview({
 
 			// Upload to ImgBB if on iOS
 			// if (isIOS()) {
-			const formData = new FormData();
-			const base64Image = dataUrl.split(",")[1];
-			formData.append("image", base64Image);
+			// const formData = new FormData();
+			// const base64Image = dataUrl.split(",")[1];
+			// formData.append("image", base64Image);
 
-			const response = await fetch(
-				`https://api.imgbb.com/1/upload?expiration=600&key=${process.env.NEXT_PUBLIC_IMGBB_API_KEY}`,
-				{
-					method: "POST",
-					body: formData,
-				},
-			);
+			// const response = await fetch(
+			// 	`https://api.imgbb.com/1/upload?expiration=600&key=${process.env.NEXT_PUBLIC_IMGBB_API_KEY}`,
+			// 	{
+			// 		method: "POST",
+			// 		body: formData,
+			// 	},
+			// );
 
-			const data = await response.json();
+			// const data = await response.json();
 			// alert(data.data.url);
 			// 	if (!data.success) {
 			// 		throw new Error("Failed to upload image");
@@ -101,7 +101,7 @@ export default function PromoImagePreview({
 
 			const item = new ClipboardItem({
 				"image/png": (async () => {
-					const response = await fetch(data.data.url);
+					const response = await fetch(dataUrl);
 					return await response.blob();
 				})(),
 			});
