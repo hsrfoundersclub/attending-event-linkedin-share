@@ -71,12 +71,26 @@ export default function Home() {
 			className={`min-h-screen py-12 px-4 ${darkMode ? "bg-gray-900" : "bg-gray-50"} transition-colors duration-200`}
 		>
 			<div className="max-w-6xl mx-auto">
-				<header className="mb-10 text-center">
-					<h1
-						className={`text-4xl font-bold mb-4 ${darkMode ? "text-white" : "text-gray-900"} transition-colors duration-200`}
-					>
-						HSR Founders Club Promo Generator
-					</h1>
+				<header className="mb-12 relative">
+					<div
+						className={`absolute inset-0 ${darkMode ? "bg-gradient-to-r from-blue-900/30 to-purple-900/30" : "bg-gradient-to-r from-blue-50 to-purple-50"} rounded-lg -z-10 blur-sm`}
+					/>
+					<div className="text-center py-8 px-4">
+						<h1
+							className={`text-5xl font-bold mb-2 ${darkMode ? "text-white" : "text-gray-900"} transition-colors duration-200 tracking-tight`}
+						>
+							<span className="bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-blue-500">
+								HSR Founders Club
+							</span>
+							<span
+								className={`${darkMode ? "text-gray-100" : "text-gray-800"}`}
+							>
+								{" "}
+								Promo Generator
+							</span>
+						</h1>
+						<div className="w-24 h-1 bg-gradient-to-r from-green-400 to-blue-500 mx-auto my-4 rounded-full" />
+					</div>
 					{/* <button
 						type="button"
 						onClick={toggleDarkMode}

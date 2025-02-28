@@ -19,14 +19,26 @@ export default function PromoImagePreview({
 	const promoText =
 		"Join me at HSR Founders Club PRODUCT WEEK 2025! March 3-6. It's going to be an amazing event with great speakers and networking opportunities. #HSRFC #ProductWeek2025";
 
-	const copyBothToClipboard = async () => {
+	const copyTextToClipboard = async () => {
+		try {
+			await navigator.clipboard.writeText(promoText);
+			toast.success("Text copied to clipboard!", {
+				position: "bottom-center",
+				duration: 3000,
+			});
+		} catch (error) {
+			console.error("Error copying text:", error);
+			toast.error("Failed to copy text. Please try again.", {
+				position: "bottom-center",
+			});
+		}
+	};
+
+	const copyImageToClipboard = async () => {
 		if (!imageRef.current) return;
 
 		try {
-			// First, copy the text to clipboard
-			await navigator.clipboard.writeText(promoText);
-
-			// Then, convert the HTML to a PNG
+			// Convert the HTML to a PNG
 			const dataUrl = await toPng(imageRef.current, { quality: 0.95 });
 
 			// Create a blob from the data URL
@@ -38,13 +50,13 @@ export default function PromoImagePreview({
 			await navigator.clipboard.write([item]);
 
 			// Show success message with toast
-			toast.success("Text and image copied to clipboard!", {
+			toast.success("Image copied to clipboard!", {
 				position: "bottom-center",
 				duration: 3000,
 			});
 		} catch (error) {
-			console.error("Error copying:", error);
-			toast.error("Failed to copy. Please try again.", {
+			console.error("Error copying image:", error);
+			toast.error("Failed to copy image. Please try again.", {
 				position: "bottom-center",
 			});
 		}
@@ -78,7 +90,7 @@ export default function PromoImagePreview({
 							height: "117px",
 						}}
 					>
-						<div className="w-full h-full overflow-hidden border-2 border-red-600">
+						<div className="w-full h-full overflow-hidden">
 							<img
 								src={formData.profileImage}
 								alt="User avatar"
@@ -113,7 +125,7 @@ export default function PromoImagePreview({
 					<div
 						className="absolute text-center"
 						style={{
-							top: "309px",
+							top: "311px",
 							left: "68%",
 							transform: "translateX(-50%)",
 							width: "100%",
@@ -155,11 +167,11 @@ export default function PromoImagePreview({
 						opportunities. #HSRFC #ProductWeek2025
 					</p>
 				</div>
-				<div className="flex justify-center">
+				<div className="flex justify-center space-x-4">
 					<button
 						type="button"
-						onClick={copyBothToClipboard}
-						className="px-4 py-2 bg-green-400 text-black font-bold rounded-md hover:bg-green-500 transition-colors flex items-center shadow-sm cursor-pointer"
+						onClick={copyTextToClipboard}
+						className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium rounded-md hover:from-blue-700 hover:to-blue-800 transition-all duration-200 flex items-center shadow-md cursor-pointer"
 					>
 						<svg
 							className="w-4 h-4 mr-2"
@@ -173,10 +185,32 @@ export default function PromoImagePreview({
 								strokeLinecap="round"
 								strokeLinejoin="round"
 								strokeWidth="2"
-								d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"
+								d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
 							/>
 						</svg>
-						Copy to Clipboard
+						Copy Text
+					</button>
+					<button
+						type="button"
+						onClick={copyImageToClipboard}
+						className="px-5 py-2.5 bg-gradient-to-r from-green-600 to-green-700 text-white font-medium rounded-md hover:from-green-700 hover:to-green-800 transition-all duration-200 flex items-center shadow-md cursor-pointer"
+					>
+						<svg
+							className="w-4 h-4 mr-2"
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24"
+							xmlns="http://www.w3.org/2000/svg"
+							aria-hidden="true"
+						>
+							<path
+								strokeLinecap="round"
+								strokeLinejoin="round"
+								strokeWidth="2"
+								d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+							/>
+						</svg>
+						Copy Image
 					</button>
 				</div>
 			</div>
