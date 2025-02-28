@@ -4,6 +4,8 @@ import { useRef } from "react";
 import Image from "next/image";
 import { toPng } from "html-to-image";
 import { toast } from "sonner";
+import { copyImageToClipboard as copyImageToClipboardLib } from "copy-image-clipboard";
+import { isIOS } from "@/lib/utils";
 import type { FormData } from "./PromoForm";
 
 type PromoImagePreviewProps = {
@@ -16,6 +18,7 @@ export default function PromoImagePreview({
 	darkMode,
 }: PromoImagePreviewProps) {
 	const imageRef = useRef<HTMLDivElement>(null);
+	const imgsrcRef = useRef<HTMLImageElement>(null);
 	const promoText =
 		"Join me at HSR Founders Club PRODUCT WEEK 2025! March 3-6. It's going to be an amazing event with great speakers and networking opportunities. #HSRFC #ProductWeek2025";
 
@@ -39,21 +42,89 @@ export default function PromoImagePreview({
 
 		try {
 			// Convert the HTML to a PNG with maximum quality and proper scaling
+			// fix for safari https://github.com/bubkoo/html-to-image/issues/361#issuecomment-1402537176
+			await toPng(imageRef.current, {
+				quality: 1.0,
+				pixelRatio: 2,
+				cacheBust: true,
+			});
+			await toPng(imageRef.current, {
+				quality: 1.0,
+				pixelRatio: 2,
+				cacheBust: true,
+			});
+			await toPng(imageRef.current, {
+				quality: 1.0,
+				pixelRatio: 2,
+				cacheBust: true,
+			});
 			const dataUrl = await toPng(imageRef.current, {
 				quality: 1.0,
 				pixelRatio: 2,
 				cacheBust: true,
 			});
 
-			// Create a blob from the data URL
-			const response = await fetch(dataUrl);
-			const blob = await response.blob();
+			// Upload to ImgBB if on iOS
+			// if (isIOS()) {
+			const formData = new FormData();
+			const base64Image = dataUrl.split(",")[1];
+			formData.append("image", base64Image);
 
-			// Copy image to clipboard
-			const item = new ClipboardItem({ "image/png": blob });
-			await navigator.clipboard.write([item]);
+			const response = await fetch(
+				`https://api.imgbb.com/1/upload?expiration=600&key=${process.env.NEXT_PUBLIC_IMGBB_API_KEY}`,
+				{
+					method: "POST",
+					body: formData,
+				},
+			);
 
-			// Show success message with toast
+			const data = await response.json();
+			// alert(data.data.url);
+			// 	if (!data.success) {
+			// 		throw new Error("Failed to upload image");
+			// 	}
+
+			// 	// Use the copy-image-clipboard library for iOS
+			// 	// await copyImageToClipboardLib(data.data.url);
+
+			// 	const item = new ClipboardItem({
+			// 		"image/png": (async () => {
+			// 			const response = await fetch(dataUrl);
+			// 			return await response.blob();
+			// 		})(),
+			// 	});
+			// 	await navigator.clipboard.write([item]);
+			// } else {
+			// For non-iOS devices, use the original method
+			// const response = await fetch(dataUrl);
+			// const blob = await response.blob();
+
+			const item = new ClipboardItem({
+				"image/png": (async () => {
+					const response = await fetch(data.data.url);
+					return await response.blob();
+				})(),
+			});
+
+			try {
+				await navigator.clipboard.write([item]);
+				// alert("it worked 😎");
+			} catch (e) {
+				alert(e);
+			}
+			// const makeImagePromise = async () => {
+			// 	const response = await fetch(dataUrl);
+			// 	return await response.blob();
+			// };
+
+			// // Copy image to clipboard
+			// await navigator.clipboard.write([
+			// 	new ClipboardItem({
+			// 		"image/png": makeImagePromise(),
+			// 	}),
+			// ]);
+			// }
+
 			toast.success("Image copied to clipboard!", {
 				position: "bottom-center",
 				duration: 3000,
@@ -78,6 +149,7 @@ export default function PromoImagePreview({
 			>
 				{/* Template Background */}
 				<img
+					ref={imgsrcRef}
 					src="/template.png"
 					alt="Event template"
 					className="absolute inset-0 w-full h-full object-cover"

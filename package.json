@@ -11,6 +11,7 @@
   "dependencies": {
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "copy-image-clipboard": "^2.1.2",
     "html-to-image": "^1.11.13",
     "lucide-react": "^0.476.0",
     "next": "15.2.0",
