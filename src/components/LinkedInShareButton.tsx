@@ -151,6 +151,26 @@ export function LinkedInShareButton({
         return;
       }
 
+      // Get user info to get their URN
+      const userInfoResponse = await fetch(
+        `/api/linkedin/userinfo?access_token=${accessToken}`
+      );
+      if (!userInfoResponse.ok) {
+        throw new Error("Failed to get user info");
+      }
+      const userInfo = await userInfoResponse.json();
+
+      if (!userInfo.sub) {
+        throw new Error("Failed to get user URN");
+      }
+
+      // Store userinfo in localStorage
+      localStorage.setItem("linkedin_userinfo", JSON.stringify(userInfo));
+      console.log("[LinkedIn] User info stored in localStorage");
+
+      const userUrn = userInfo.sub;
+      console.log("[LinkedIn] User URN:", userUrn);
+
       // Convert the image to PNG
       if (!imageRef.current) {
         console.error("[LinkedIn] Image reference not found");
@@ -167,25 +187,14 @@ export function LinkedInShareButton({
       // Step 1: Register the image upload
       console.log("[LinkedIn] Registering image upload...");
       const registerUploadResponse = await fetch(
-        `${LINKEDIN_CONFIG.apiUrl}/assets?action=registerUpload`,
+        `/api/linkedin/register-upload?access_token=${accessToken}`,
         {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${accessToken}`,
             "Content-Type": "application/json",
-            "X-Restli-Protocol-Version": "2.0.0",
           },
           body: JSON.stringify({
-            registerUploadRequest: {
-              recipes: ["urn:li:digitalmediaRecipe:feedshare-image"],
-              owner: "urn:li:userGeneratedContent",
-              serviceRelationships: [
-                {
-                  relationshipType: "OWNER",
-                  identifier: "urn:li:userGeneratedContent",
-                },
-              ],
-            },
+            owner: userUrn,
           }),
         }
       );
@@ -212,52 +221,43 @@ export function LinkedInShareButton({
       console.log("[LinkedIn] Upload URL:", uploadUrl);
       console.log("[LinkedIn] Asset:", asset);
 
-      // Step 2: Upload the image
+      // Step 2: Upload the image using the upload route
       console.log("[LinkedIn] Uploading image...");
-      const imageBlob = await fetch(dataUrl).then((r) => r.blob());
-      const uploadResponse = await fetch(uploadUrl, {
-        method: "PUT",
-        body: imageBlob,
-      });
-      console.log("[LinkedIn] Image upload status:", uploadResponse.status);
-
-      // Step 3: Create the UGC post with image
-      console.log("[LinkedIn] Creating UGC post...");
-      const ugcPostResponse = await fetch(
-        `${LINKEDIN_CONFIG.apiUrl}/ugcPosts`,
+      const uploadResponse = await fetch(
+        `/api/linkedin/upload?access_token=${accessToken}`,
         {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${accessToken}`,
             "Content-Type": "application/json",
-            "X-Restli-Protocol-Version": "2.0.0",
           },
           body: JSON.stringify({
-            author: "urn:li:userGeneratedContent",
-            lifecycleState: "PUBLISHED",
-            specificContent: {
-              "com.linkedin.ugc.ShareContent": {
-                shareCommentary: {
-                  text: text,
-                },
-                shareMediaCategory: "IMAGE",
-                media: [
-                  {
-                    status: "READY",
-                    description: {
-                      text: text,
-                    },
-                    media: asset,
-                    title: {
-                      text: "HSR Founders Club Event",
-                    },
-                  },
-                ],
-              },
-            },
-            visibility: {
-              "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC",
-            },
+            uploadUrl: uploadUrl,
+            imageData: dataUrl,
+          }),
+        }
+      );
+
+      if (!uploadResponse.ok) {
+        const uploadError = await uploadResponse.json();
+        console.error("[LinkedIn] Upload error:", uploadError);
+        throw new Error("Failed to upload image");
+      }
+
+      console.log("[LinkedIn] Image upload status:", uploadResponse.status);
+
+      // Step 3: Create the UGC post with image using our server-side API route
+      console.log("[LinkedIn] Creating UGC post...");
+      const ugcPostResponse = await fetch(
+        `/api/linkedin/create-post?access_token=${accessToken}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            author: userUrn,
+            text: text,
+            asset: asset,
           }),
         }
       );

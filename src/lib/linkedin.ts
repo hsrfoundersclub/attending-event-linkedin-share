@@ -20,3 +20,17 @@ export function getLinkedInAuthUrl(state: string): string {
 
   return `${LINKEDIN_CONFIG.authUrl}?${params.toString()}`;
 }
+
+export async function getUserInfo(accessToken: string) {
+  const response = await fetch(LINKEDIN_CONFIG.userInfoUrl, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch user info");
+  }
+
+  return response.json();
+}
