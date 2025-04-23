@@ -1,125 +1,173 @@
-import { useState, useEffect } from "react";
+"use client";
 
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { toPng } from "html-to-image";
-import { Button } from "./ui/button";
-import { LinkedInAuth } from "./LinkedInAuth";
+import { LINKEDIN_CONFIG } from "@/lib/linkedin";
+import { useRouter } from "next/navigation";
 
 interface LinkedInShareButtonProps {
   text: string;
-  imageRef: React.RefObject<HTMLDivElement | null>;
+  imageRef: React.RefObject<HTMLDivElement>;
 }
 
 export function LinkedInShareButton({
   text,
   imageRef,
 }: LinkedInShareButtonProps) {
-  const [isLoading, setIsLoading] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userProfile, setUserProfile] = useState<any>(null);
+  const router = useRouter();
+  const [isSharing, setIsSharing] = useState(false);
 
-  // Check authentication status only once on mount
+  // Check if we're returning from LinkedIn auth
   useEffect(() => {
-    const checkAuth = async () => {
-      const accessToken = localStorage.getItem("linkedin_access_token");
-      const storedProfile = localStorage.getItem("linkedin_profile");
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get("code");
+    const state = urlParams.get("state");
+    const error = urlParams.get("error");
 
-      if (storedProfile) {
-        setUserProfile(JSON.parse(storedProfile));
-        setIsAuthenticated(true);
-        return;
-      }
+    if (code && state) {
+      // We're in the callback, let the server handle it
+      return;
+    }
 
-      if (accessToken) {
-        try {
-          const response = await fetch("/api/linkedin/profile", {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
-          });
-
-          if (response.ok) {
-            const profileData = await response.json();
-            localStorage.setItem(
-              "linkedin_profile",
-              JSON.stringify(profileData)
-            );
-            setUserProfile(profileData);
-            setIsAuthenticated(true);
-          } else {
-            localStorage.removeItem("linkedin_access_token");
-            localStorage.removeItem("linkedin_profile");
-            setIsAuthenticated(false);
-          }
-        } catch (error) {
-          console.error("Error checking auth:", error);
-          localStorage.removeItem("linkedin_access_token");
-          localStorage.removeItem("linkedin_profile");
-          setIsAuthenticated(false);
-        }
-      }
-    };
-
-    checkAuth();
+    if (error) {
+      console.error("[LinkedIn] Auth error:", error);
+      // Clear any existing state
+      localStorage.removeItem("linkedin_auth_state");
+    }
   }, []);
 
-  const handleAuthChange = (authenticated: boolean, profile: any) => {
-    setIsAuthenticated(authenticated);
-    setUserProfile(profile);
-    if (profile) {
-      localStorage.setItem("linkedin_profile", JSON.stringify(profile));
-    } else {
-      localStorage.removeItem("linkedin_profile");
-    }
+  const getAccessToken = () => {
+    return localStorage.getItem("linkedin_access_token");
   };
 
-  const handleLogin = () => {
-    const clientId = process.env.NEXT_PUBLIC_LINKEDIN_CLIENT_ID;
-    const redirectUri = `${window.location.origin}/linkedin-callback`;
-    const scope = "openid profile w_member_social email";
+  const getRefreshToken = () => {
+    return localStorage.getItem("linkedin_refresh_token");
+  };
+
+  const getTokenExpiry = () => {
+    return localStorage.getItem("linkedin_token_expiry");
+  };
+
+  const checkAndRefreshToken = async () => {
+    const accessToken = getAccessToken();
+    const tokenExpiry = getTokenExpiry();
+
+    if (!accessToken || !tokenExpiry) {
+      return null;
+    }
+
+    // Check if token is expired or will expire in the next 5 minutes
+    const expiryTime = parseInt(tokenExpiry);
+    if (Date.now() >= expiryTime - 5 * 60 * 1000) {
+      try {
+        const refreshToken = getRefreshToken();
+        if (!refreshToken) {
+          return null;
+        }
+
+        const response = await fetch(
+          "https://www.linkedin.com/oauth/v2/accessToken",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: new URLSearchParams({
+              grant_type: "refresh_token",
+              refresh_token: refreshToken,
+              client_id: LINKEDIN_CONFIG.clientId,
+              client_secret: LINKEDIN_CONFIG.clientSecret,
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to refresh token");
+        }
+
+        const tokenData = await response.json();
+
+        // Store the new tokens
+        localStorage.setItem("linkedin_access_token", tokenData.access_token);
+        localStorage.setItem(
+          "linkedin_token_expiry",
+          (Date.now() + tokenData.expires_in * 1000).toString()
+        );
+        if (tokenData.refresh_token) {
+          localStorage.setItem(
+            "linkedin_refresh_token",
+            tokenData.refresh_token
+          );
+        }
+
+        return tokenData.access_token;
+      } catch (error) {
+        console.error("[LinkedIn] Token refresh error:", error);
+        return null;
+      }
+    }
+
+    return accessToken;
+  };
+
+  const initiateAuth = () => {
+    // Generate a random state value to prevent CSRF
     const state = Math.random().toString(36).substring(7);
 
-    // Store the current form state in localStorage
+    // Store the state in localStorage to verify later
     localStorage.setItem("linkedin_auth_state", state);
-    localStorage.setItem("form_text", text);
-    if (imageRef.current) {
-      toPng(imageRef.current, {
-        quality: 1.0,
-        pixelRatio: 2,
-        cacheBust: true,
-      }).then((dataUrl) => {
-        localStorage.setItem("form_image", dataUrl);
-        // Now redirect to LinkedIn
-        window.location.href = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&state=${state}`;
-      });
-    } else {
-      window.location.href = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&state=${state}`;
-    }
+
+    // Construct the authorization URL using LINKEDIN_CONFIG
+    const authUrl = new URL(LINKEDIN_CONFIG.authUrl);
+    authUrl.searchParams.append("response_type", "code");
+    authUrl.searchParams.append("client_id", LINKEDIN_CONFIG.clientId);
+    authUrl.searchParams.append("redirect_uri", LINKEDIN_CONFIG.redirectUri);
+    authUrl.searchParams.append("state", state);
+    authUrl.searchParams.append("scope", LINKEDIN_CONFIG.scope);
+
+    console.log("[LinkedIn] Initiating auth with config:", {
+      authUrl: LINKEDIN_CONFIG.authUrl,
+      redirectUri: LINKEDIN_CONFIG.redirectUri,
+      scope: LINKEDIN_CONFIG.scope,
+    });
+
+    // Redirect to LinkedIn auth page
+    window.location.href = authUrl.toString();
   };
 
   const handleShare = async () => {
     try {
-      setIsLoading(true);
+      setIsSharing(true);
+      console.log("[LinkedIn] Starting share process...");
 
+      // Check if we have an access token
+      const accessToken = await checkAndRefreshToken();
+      console.log("[LinkedIn] Access token found:", !!accessToken);
+
+      if (!accessToken) {
+        console.log("[LinkedIn] No access token, initiating auth flow...");
+        initiateAuth();
+        return;
+      }
+
+      // Convert the image to PNG
       if (!imageRef.current) {
-        throw new Error("Image reference is not available");
+        console.error("[LinkedIn] Image reference not found");
+        throw new Error("Image reference not found");
       }
 
-      const accessToken = localStorage.getItem("linkedin_access_token");
-      if (!accessToken || !userProfile) {
-        throw new Error("Not authenticated with LinkedIn");
-      }
-
-      // Convert the preview to an image
-      const imageUrl = await toPng(imageRef.current, {
+      console.log("[LinkedIn] Converting image to PNG...");
+      const dataUrl = await toPng(imageRef.current, {
         quality: 1.0,
         pixelRatio: 2,
-        cacheBust: true,
       });
+      console.log("[LinkedIn] Image converted successfully");
 
-      // First, register the upload
+      // Step 1: Register the image upload
+      console.log("[LinkedIn] Registering image upload...");
       const registerUploadResponse = await fetch(
-        "https://api.linkedin.com/v2/assets?action=registerUpload",
+        `${LINKEDIN_CONFIG.apiUrl}/assets?action=registerUpload`,
         {
           method: "POST",
           headers: {
@@ -129,8 +177,8 @@ export function LinkedInShareButton({
           },
           body: JSON.stringify({
             registerUploadRequest: {
-              owner: `urn:li:person:${userProfile.sub}`,
               recipes: ["urn:li:digitalmediaRecipe:feedshare-image"],
+              owner: "urn:li:userGeneratedContent",
               serviceRelationships: [
                 {
                   relationshipType: "OWNER",
@@ -142,109 +190,143 @@ export function LinkedInShareButton({
         }
       );
 
+      console.log(
+        "[LinkedIn] Register upload response status:",
+        registerUploadResponse.status
+      );
+      const registerUploadData = await registerUploadResponse.json();
+      console.log("[LinkedIn] Register upload response:", registerUploadData);
+
       if (!registerUploadResponse.ok) {
-        const errorData = await registerUploadResponse.json();
-        console.error("Register upload error:", errorData);
-        throw new Error("Failed to register upload");
+        console.error("[LinkedIn] Register upload error:", registerUploadData);
+        throw new Error("Failed to register image upload");
       }
 
-      const uploadData = await registerUploadResponse.json();
+      const { value } = registerUploadData;
       const uploadUrl =
-        uploadData.value.uploadMechanism[
+        value.uploadMechanism[
           "com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest"
         ].uploadUrl;
-      const asset = uploadData.value.asset;
+      const asset = value.asset;
 
-      // Upload the image
+      console.log("[LinkedIn] Upload URL:", uploadUrl);
+      console.log("[LinkedIn] Asset:", asset);
+
+      // Step 2: Upload the image
+      console.log("[LinkedIn] Uploading image...");
+      const imageBlob = await fetch(dataUrl).then((r) => r.blob());
       const uploadResponse = await fetch(uploadUrl, {
         method: "PUT",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "image/jpeg",
-        },
-        body: await fetch(imageUrl).then((res) => res.blob()),
+        body: imageBlob,
       });
+      console.log("[LinkedIn] Image upload status:", uploadResponse.status);
 
-      if (!uploadResponse.ok) {
-        throw new Error("Failed to upload image");
-      }
-
-      // Create the post
-      const postResponse = await fetch("https://api.linkedin.com/v2/ugcPosts", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-          "X-Restli-Protocol-Version": "2.0.0",
-        },
-        body: JSON.stringify({
-          author: `urn:li:person:${userProfile.sub}`,
-          lifecycleState: "PUBLISHED",
-          specificContent: {
-            "com.linkedin.ugc.ShareContent": {
-              shareCommentary: {
-                text: text,
-              },
-              shareMediaCategory: "IMAGE",
-              media: [
-                {
-                  status: "READY",
-                  description: {
-                    text: text,
-                  },
-                  media: asset,
-                  title: {
-                    text: "Shared Image",
-                  },
+      // Step 3: Create the UGC post with image
+      console.log("[LinkedIn] Creating UGC post...");
+      const ugcPostResponse = await fetch(
+        `${LINKEDIN_CONFIG.apiUrl}/ugcPosts`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+            "X-Restli-Protocol-Version": "2.0.0",
+          },
+          body: JSON.stringify({
+            author: "urn:li:userGeneratedContent",
+            lifecycleState: "PUBLISHED",
+            specificContent: {
+              "com.linkedin.ugc.ShareContent": {
+                shareCommentary: {
+                  text: text,
                 },
-              ],
+                shareMediaCategory: "IMAGE",
+                media: [
+                  {
+                    status: "READY",
+                    description: {
+                      text: text,
+                    },
+                    media: asset,
+                    title: {
+                      text: "HSR Founders Club Event",
+                    },
+                  },
+                ],
+              },
             },
-          },
-          visibility: {
-            "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC",
-          },
-        }),
-      });
+            visibility: {
+              "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC",
+            },
+          }),
+        }
+      );
 
-      if (!postResponse.ok) {
-        const errorData = await postResponse.json();
-        console.error("Post creation error:", errorData);
-        throw new Error("Failed to create post");
+      console.log(
+        "[LinkedIn] UGC post response status:",
+        ugcPostResponse.status
+      );
+      const ugcPostData = await ugcPostResponse.json();
+      console.log("[LinkedIn] UGC post response:", ugcPostData);
+
+      if (!ugcPostResponse.ok) {
+        console.error("[LinkedIn] UGC post error:", ugcPostData);
+        throw new Error("Failed to create UGC post");
       }
 
-      toast.success("Successfully shared to LinkedIn!");
+      // Extract the post URL from the response
+      const postId = ugcPostData.id;
+      const postUrl = `https://www.linkedin.com/feed/update/${postId}/`;
+      console.log("[LinkedIn] Post URL:", postUrl);
+
+      console.log("[LinkedIn] Share successful!");
+      toast.success("Successfully shared on LinkedIn!");
     } catch (error) {
-      console.error("Error sharing to LinkedIn:", error);
-      toast.error("Failed to share to LinkedIn");
+      console.error("[LinkedIn] Error sharing to LinkedIn:", error);
+      toast.error("Failed to share on LinkedIn. Please try again.");
     } finally {
-      setIsLoading(false);
+      setIsSharing(false);
     }
   };
 
   return (
-    <div className="flex flex-col gap-2">
-      {isAuthenticated ? (
+    <button
+      onClick={handleShare}
+      disabled={isSharing}
+      className={`px-4 py-2 bg-[#0077b5] text-white rounded-md transition-colors duration-200 flex items-center justify-center space-x-2 ${
+        isSharing
+          ? "opacity-50 cursor-not-allowed"
+          : "hover:bg-[#005e93] cursor-pointer"
+      }`}
+    >
+      {isSharing ? (
         <>
-          <div className="text-sm text-gray-600">
-            Logged in as: {userProfile?.given_name} {userProfile?.family_name}
-          </div>
-          <LinkedInAuth onAuthChange={handleAuthChange} />
-          <Button
-            onClick={handleShare}
-            disabled={isLoading}
-            className="bg-[#0077B5] hover:bg-[#005E93] text-white"
-          >
-            {isLoading ? "Sharing..." : "Share on LinkedIn"}
-          </Button>
+          <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+              fill="none"
+            />
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            />
+          </svg>
+          <span>Sharing...</span>
         </>
       ) : (
-        <Button
-          onClick={handleLogin}
-          className="bg-[#0077B5] hover:bg-[#005E93] text-white"
-        >
-          Login with LinkedIn
-        </Button>
+        <>
+          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M20.5 2h-17A1.5 1.5 0 002 3.5v17A1.5 1.5 0 003.5 22h17a1.5 1.5 0 001.5-1.5v-17A1.5 1.5 0 0020.5 2zM8 19H5v-9h3zM6.5 8.25A1.75 1.75 0 118.3 6.5a1.78 1.78 0 01-1.8 1.75zM19 19h-3v-4.74c0-1.42-.6-1.93-1.38-1.93A1.74 1.74 0 0013 14.19V19h-3v-9h2.9v1.3a3.11 3.11 0 012.7-1.4c1.55 0 3.36.86 3.36 3.66z" />
+          </svg>
+          <span>Share on LinkedIn</span>
+        </>
       )}
-    </div>
+    </button>
   );
 }

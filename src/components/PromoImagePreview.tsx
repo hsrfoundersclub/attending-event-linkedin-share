@@ -5,7 +5,6 @@ import Image from "next/image";
 import { toPng } from "html-to-image";
 import { toast } from "sonner";
 import { copyImageToClipboard as copyImageToClipboardLib } from "copy-image-clipboard";
-import { isIOS } from "@/lib/utils";
 import type { FormData } from "./PromoForm";
 import { LinkedInShareButton } from "./LinkedInShareButton";
 
@@ -257,7 +256,10 @@ export default function PromoImagePreview({
       </div>
       {/* LinkedIn Share Button */}
       <div className="flex justify-center w-full max-w-md">
-        <LinkedInShareButton text={promoText} imageRef={imageRef} />
+        <LinkedInShareButton
+          text={promoText}
+          imageRef={imageRef as React.RefObject<HTMLDivElement>}
+        />
       </div>
     </div>
   );
