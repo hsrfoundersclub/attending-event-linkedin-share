@@ -20,7 +20,7 @@ export default function PromoImagePreview({
   const imageRef = useRef<HTMLDivElement>(null);
   const imgsrcRef = useRef<HTMLImageElement>(null);
   const defaultPromoText =
-    "The AFTERPARTY is calling! 🚀\n\nJoin me at HSR Founders Club - THE AFTERPARTY this April 26th.\n\nAn evening packed with bold ideas, brilliant founders, and non-stop energy. Come for the vibe, stay for the connections. 🔥\n\n#HSRFC #THEAFTERPARTY2025";
+    "The AFTERPARTY is calling! 🚀\n\nJoin me at HSR Founders Club - THE AFTERPARTY this April 26th.\n\nAn evening packed with bold ideas, brilliant founders, and non-stop energy. Come for the vibe, stay for the connections. 🔥\n\nRegister here! https://lu.ma/xvq0kyrc \n\n#HSRFC #THEAFTERPARTY2025";
 
   const [promoText, setPromoText] = useState(defaultPromoText);
   const contentEditableRef = useRef<HTMLDivElement>(null);
@@ -209,9 +209,13 @@ export default function PromoImagePreview({
             )}
 
             {/* Role, Company */}
-            <p className="text-white drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,0.8)] text-[0.65rem] sm:text-[0.9rem] text-center truncate w-full px-1">
+            <p className="text-white drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,0.8)] text-[0.60rem] sm:text-[0.85rem] text-center truncate w-full px-1">
               {formData.role ? formData.role : ""}
-              {formData.company ? ", " + formData.company : ""}
+            </p>
+
+            {/* Role, Company */}
+            <p className="text-white drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,0.8)] text-[0.60rem] sm:text-[0.85rem] text-center truncate w-full px-1">
+              {formData.company ? formData.company : ""}
             </p>
           </div>
         </div>
