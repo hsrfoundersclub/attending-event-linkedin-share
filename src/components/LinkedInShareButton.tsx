@@ -181,6 +181,7 @@ export function LinkedInShareButton({
       const dataUrl = await toPng(imageRef.current, {
         quality: 1.0,
         pixelRatio: 2,
+        cacheBust: true, // Add cache busting for better iOS compatibility
       });
       console.log("[LinkedIn] Image converted successfully");
 
