@@ -96,8 +96,8 @@ export default function PromoImagePreview({
         ref={imageRef}
         className="relative w-full max-w-md bg-black shadow-xl rounded-lg overflow-hidden"
         style={{
-          aspectRatio: "1/1",
-          maxHeight: "480px",
+          aspectRatio: "3/4",
+          maxHeight: "640px",
         }}
       >
         {/* Template Background */}
@@ -108,77 +108,45 @@ export default function PromoImagePreview({
           className="absolute inset-0 w-full h-full object-cover"
         />
 
-        {/* Profile Photo - using relative sizing for better responsiveness */}
-        {formData.profileImage && (
-          <div
-            className="absolute"
-            style={{
-              top: "40.1%",
-              left: "54.2%",
-              width: "26%",
-              height: "26%",
-            }}
-          >
-            <div className="w-full h-full overflow-hidden">
+        <div
+          className="absolute drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,0.8)] flex flex-col justify-center items-center rotate-6 p-2"
+          style={{
+            top: "21.7%",
+            left: "44.7%",
+            width: "48.5%",
+            height:
+              "40%" /* Adjusted to ensure content fits within boundaries */,
+            overflow: "hidden" /* Added to prevent content from overflowing */,
+          }}
+        >
+          {/* Image container - takes up most of the height but not all */}
+          <div className="w-[55%] h-[55%] drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,0.8)] rounded-md overflow-hidden mb-2">
+            {/* Profile Photo */}
+            {formData.profileImage && (
               <img
                 src={formData.profileImage}
                 alt="User avatar"
-                className="w-full h-full object-contain"
+                className="w-full h-full object-cover"
               />
-            </div>
+            )}
           </div>
-        )}
 
-        {/* Name - using relative sizing for better responsiveness */}
-        {formData.name && (
-          <div
-            className="absolute text-center"
-            style={{
-              top: "64.6%" /* converted from 292px using percentage of container */,
-              left: "68%",
-              transform: "translateX(-50%)",
-              width: "100%",
-            }}
-          >
-            <p className="text-white font-bold text-[0.79rem] sm:text-[1.125rem]">
-              {formData.name}
+          {/* Text container - aligned at the bottom */}
+          <div className="flex flex-col justify-start items-center w-full rounded-2">
+            {/* Name */}
+            {formData.name && (
+              <p className="text-white drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,0.8)] font-bold text-[0.75rem] sm:text-[1rem] text-center truncate w-full px-1">
+                {formData.name}
+              </p>
+            )}
+
+            {/* Role, Company */}
+            <p className="text-white drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,0.8)] text-[0.65rem] sm:text-[0.9rem] text-center truncate w-full px-1">
+              {formData.role ? formData.role : ""}
+              {formData.company ? ", " + formData.company : ""}
             </p>
           </div>
-        )}
-
-        {/* Role - using relative sizing for better responsiveness */}
-        {formData.role && (
-          <div
-            className="absolute text-center"
-            style={{
-              top: "69%" /* converted from 311px using percentage of container */,
-              left: "68%",
-              transform: "translateX(-50%)",
-              width: "100%",
-            }}
-          >
-            <p className="text-white text-[0.7rem] sm:text-[1rem]">
-              {formData.role}
-            </p>
-          </div>
-        )}
-
-        {/* Company - using relative sizing for better responsiveness */}
-        {formData.company && (
-          <div
-            className="absolute text-center"
-            style={{
-              top: "73%" /* converted from 328px using percentage of container */,
-              left: "68%",
-              transform: "translateX(-50%)",
-              width: "100%",
-            }}
-          >
-            <p className="text-white text-[0.7rem] sm:text-[0.875rem]">
-              {formData.company}
-            </p>
-          </div>
-        )}
+        </div>
       </div>
 
       {/* Copy buttons - moved here between image and text block */}
