@@ -5,6 +5,8 @@ import { toast } from "sonner";
 import { toPng } from "html-to-image";
 import { LINKEDIN_CONFIG } from "@/lib/linkedin";
 import { useRouter } from "next/navigation";
+import { isIOS } from "@/lib/deviceDetection";
+import { IOSShareModal } from "./IOSShareModal";
 
 interface LinkedInShareButtonProps {
   text: string;
@@ -17,6 +19,13 @@ export function LinkedInShareButton({
 }: LinkedInShareButtonProps) {
   const router = useRouter();
   const [isSharing, setIsSharing] = useState(false);
+  const [isIOSDevice, setIsIOSDevice] = useState(false);
+  const [showIOSModal, setShowIOSModal] = useState(false);
+
+  // Check if device is iOS on component mount
+  useEffect(() => {
+    setIsIOSDevice(isIOS());
+  }, []);
 
   // Check if we're returning from LinkedIn auth
   useEffect(() => {
@@ -136,7 +145,157 @@ export function LinkedInShareButton({
     window.location.href = authUrl.toString();
   };
 
+  // Function to handle sharing with uploaded image from iOS modal
+  const handleIOSShare = async (imageFile: File) => {
+    try {
+      setIsSharing(true);
+      console.log("[LinkedIn] Starting iOS share process...");
+
+      // Check if we have an access token
+      const accessToken = await checkAndRefreshToken();
+      console.log("[LinkedIn] Access token found:", !!accessToken);
+
+      if (!accessToken) {
+        console.log("[LinkedIn] No access token, initiating auth flow...");
+        initiateAuth();
+        return;
+      }
+
+      // Get user info to get their URN
+      const userInfoResponse = await fetch(
+        `/api/linkedin/userinfo?access_token=${accessToken}`
+      );
+      if (!userInfoResponse.ok) {
+        throw new Error("Failed to get user info");
+      }
+      const userInfo = await userInfoResponse.json();
+
+      if (!userInfo.sub) {
+        throw new Error("Failed to get user URN");
+      }
+
+      const userUrn = userInfo.sub;
+      console.log("[LinkedIn] User URN:", userUrn);
+
+      // Step 1: Register the image upload
+      console.log("[LinkedIn] Registering image upload...");
+      const registerUploadResponse = await fetch(
+        `/api/linkedin/register-upload?access_token=${accessToken}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            owner: userUrn,
+          }),
+        }
+      );
+
+      if (!registerUploadResponse.ok) {
+        const registerUploadData = await registerUploadResponse.json();
+        console.error("[LinkedIn] Register upload error:", registerUploadData);
+        throw new Error("Failed to register image upload");
+      }
+
+      const registerUploadData = await registerUploadResponse.json();
+      const { value } = registerUploadData;
+      const uploadUrl =
+        value.uploadMechanism[
+          "com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest"
+        ].uploadUrl;
+      const asset = value.asset;
+
+      // Step 2: Convert the file to base64
+      const reader = new FileReader();
+      const imageDataPromise = new Promise<string>((resolve, reject) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(imageFile);
+      });
+
+      const imageData = await imageDataPromise;
+
+      // Step 3: Upload the image using the upload route
+      console.log("[LinkedIn] Uploading image...");
+      const uploadResponse = await fetch(
+        `/api/linkedin/upload?access_token=${accessToken}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            uploadUrl: uploadUrl,
+            imageData: imageData,
+          }),
+        }
+      );
+
+      if (!uploadResponse.ok) {
+        const uploadError = await uploadResponse.json();
+        console.error("[LinkedIn] Upload error:", uploadError);
+        throw new Error("Failed to upload image");
+      }
+
+      // Step 4: Create the UGC post with image
+      console.log("[LinkedIn] Creating UGC post...");
+      const ugcPostResponse = await fetch(
+        `/api/linkedin/create-post?access_token=${accessToken}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            author: userUrn,
+            text: text,
+            asset: asset,
+          }),
+        }
+      );
+
+      if (!ugcPostResponse.ok) {
+        const ugcPostData = await ugcPostResponse.json();
+        console.error("[LinkedIn] UGC post error:", ugcPostData);
+        throw new Error("Failed to create UGC post");
+      }
+
+      const ugcPostData = await ugcPostResponse.json();
+      const postId = ugcPostData.id;
+      const postUrl = `https://www.linkedin.com/feed/update/${postId}/`;
+
+      console.log("[LinkedIn] Share successful!");
+      toast.success(
+        <div>
+          Successfully shared on LinkedIn!
+          <br />
+          <a
+            href={postUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline text-blue-500 hover:text-blue-700"
+          >
+            View your post
+          </a>
+        </div>
+      );
+    } catch (error) {
+      console.error("[LinkedIn] Error sharing to LinkedIn:", error);
+      toast.error("Failed to share on LinkedIn. Please try again.");
+      throw error; // Re-throw to be caught by the modal
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
   const handleShare = async () => {
+    // For iOS devices, show the modal instead of proceeding with normal flow
+    if (isIOSDevice) {
+      setShowIOSModal(true);
+      return;
+    }
+
     try {
       setIsSharing(true);
       console.log("[LinkedIn] Starting share process...");
@@ -178,12 +337,76 @@ export function LinkedInShareButton({
       }
 
       console.log("[LinkedIn] Converting image to PNG...");
-      const dataUrl = await toPng(imageRef.current, {
-        quality: 1.0,
-        pixelRatio: 2,
-        cacheBust: true, // Add cache busting for better iOS compatibility
-      });
-      console.log("[LinkedIn] Image converted successfully");
+
+      // For iOS devices, we need to handle image generation differently
+      let dataUrl;
+
+      try {
+        dataUrl = await toPng(imageRef.current, {
+          quality: 1.0,
+          pixelRatio: 2,
+          cacheBust: true,
+        });
+        console.log("[LinkedIn] Image converted successfully");
+      } catch (error) {
+        console.error("[LinkedIn] Error converting image:", error);
+
+        // For iOS devices, if image conversion fails, offer to share text only
+        if (isIOSDevice) {
+          const shareTextOnly = window.confirm(
+            "We're having trouble generating the image on your iOS device. Would you like to share the text only to LinkedIn?"
+          );
+
+          if (shareTextOnly) {
+            // Create a text-only post
+            const ugcPostResponse = await fetch(
+              `/api/linkedin/create-post?access_token=${accessToken}`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  author: userUrn,
+                  text: text,
+                }),
+              }
+            );
+
+            if (!ugcPostResponse.ok) {
+              const ugcPostData = await ugcPostResponse.json();
+              console.error("[LinkedIn] UGC post error:", ugcPostData);
+              throw new Error("Failed to create UGC post");
+            }
+
+            const ugcPostData = await ugcPostResponse.json();
+            const postId = ugcPostData.id;
+            const postUrl = `https://www.linkedin.com/feed/update/${postId}/`;
+
+            toast.success(
+              <div>
+                Successfully shared text on LinkedIn!
+                <br />
+                <a
+                  href={postUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline text-blue-500 hover:text-blue-700"
+                >
+                  View your post
+                </a>
+              </div>
+            );
+
+            setIsSharing(false);
+            return;
+          } else {
+            throw new Error("Image generation failed on iOS device");
+          }
+        } else {
+          throw error; // Re-throw for non-iOS devices
+        }
+      }
 
       // Step 1: Register the image upload
       console.log("[LinkedIn] Registering image upload...");
@@ -304,43 +527,53 @@ export function LinkedInShareButton({
   };
 
   return (
-    <button
-      onClick={handleShare}
-      disabled={isSharing}
-      className={`px-4 py-2 bg-[#0077b5] text-white rounded-md transition-colors duration-200 flex items-center justify-center space-x-2 ${
-        isSharing
-          ? "opacity-50 cursor-not-allowed"
-          : "hover:bg-[#005e93] cursor-pointer"
-      }`}
-    >
-      {isSharing ? (
-        <>
-          <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="4"
-              fill="none"
-            />
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-            />
-          </svg>
-          <span>Sharing...</span>
-        </>
-      ) : (
-        <>
-          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M20.5 2h-17A1.5 1.5 0 002 3.5v17A1.5 1.5 0 003.5 22h17a1.5 1.5 0 001.5-1.5v-17A1.5 1.5 0 0020.5 2zM8 19H5v-9h3zM6.5 8.25A1.75 1.75 0 118.3 6.5a1.78 1.78 0 01-1.8 1.75zM19 19h-3v-4.74c0-1.42-.6-1.93-1.38-1.93A1.74 1.74 0 0013 14.19V19h-3v-9h2.9v1.3a3.11 3.11 0 012.7-1.4c1.55 0 3.36.86 3.36 3.66z" />
-          </svg>
-          <span>Share</span>
-        </>
-      )}
-    </button>
+    <>
+      <button
+        onClick={handleShare}
+        disabled={isSharing}
+        className={`px-4 py-2 bg-[#0077b5] text-white rounded-md transition-colors duration-200 flex items-center justify-center space-x-2 ${
+          isSharing
+            ? "opacity-50 cursor-not-allowed"
+            : "hover:bg-[#005e93] cursor-pointer"
+        }`}
+      >
+        {isSharing ? (
+          <>
+            <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+                fill="none"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              />
+            </svg>
+            <span>Sharing...</span>
+          </>
+        ) : (
+          <>
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M20.5 2h-17A1.5 1.5 0 002 3.5v17A1.5 1.5 0 003.5 22h17a1.5 1.5 0 001.5-1.5v-17A1.5 1.5 0 0020.5 2zM8 19H5v-9h3zM6.5 8.25A1.75 1.75 0 118.3 6.5a1.78 1.78 0 01-1.8 1.75zM19 19h-3v-4.74c0-1.42-.6-1.93-1.38-1.93A1.74 1.74 0 0013 14.19V19h-3v-9h2.9v1.3a3.11 3.11 0 012.7-1.4c1.55 0 3.36.86 3.36 3.66z" />
+            </svg>
+            <span>Share</span>
+          </>
+        )}
+      </button>
+
+      {/* iOS Share Modal */}
+      <IOSShareModal
+        isOpen={showIOSModal}
+        onClose={() => setShowIOSModal(false)}
+        onShare={handleIOSShare}
+        text={text}
+      />
+    </>
   );
 }
