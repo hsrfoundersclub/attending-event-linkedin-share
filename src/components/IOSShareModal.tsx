@@ -95,10 +95,27 @@ export function IOSShareModal({
         </h2>
 
         <div className="mb-6">
-          <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">
-            To share on LinkedIn from your iOS device, please download the image
-            first and then upload it here.
-          </p>
+          <div className="bg-blue-50 dark:bg-blue-900/30 rounded-md p-3 mb-4 border border-blue-100 dark:border-blue-800">
+            <div className="flex items-start space-x-2">
+              <svg
+                className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <p className="text-sm text-blue-700 dark:text-blue-300">
+                <span className="font-medium">Select the image</span> you just
+                downloaded to share on LinkedIn
+              </p>
+            </div>
+          </div>
 
           <div
             className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"

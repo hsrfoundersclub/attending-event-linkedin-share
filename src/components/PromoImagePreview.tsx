@@ -8,6 +8,7 @@ import { copyImageToClipboard as copyImageToClipboardLib } from "copy-image-clip
 import type { FormData } from "./PromoForm";
 import { LinkedInShareButton } from "./LinkedInShareButton";
 import { isIOS } from "@/lib/deviceDetection";
+import { DeviceInstructions } from "./DeviceInstructions";
 
 // iOS-aware button component that changes text based on device
 const IOSAwareButton = ({
@@ -206,6 +207,9 @@ export default function PromoImagePreview({
           imageRef={imageRef as React.RefObject<HTMLDivElement>}
         />
       </div>
+
+      {/* Device-specific instructions */}
+      <DeviceInstructions />
 
       <div
         ref={imageRef}
