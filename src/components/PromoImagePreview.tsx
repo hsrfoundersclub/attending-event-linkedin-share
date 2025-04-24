@@ -7,6 +7,55 @@ import { toast } from "sonner";
 import { copyImageToClipboard as copyImageToClipboardLib } from "copy-image-clipboard";
 import type { FormData } from "./PromoForm";
 import { LinkedInShareButton } from "./LinkedInShareButton";
+import { isIOS } from "@/lib/deviceDetection";
+
+// iOS-aware button component that changes text based on device
+const IOSAwareButton = ({
+  onClick,
+  className,
+}: {
+  onClick: () => void;
+  className: string;
+}) => {
+  const [isIOSDevice, setIsIOSDevice] = useState(false);
+
+  useEffect(() => {
+    // Check if running on iOS
+    setIsIOSDevice(isIOS());
+  }, []);
+
+  return (
+    <button type="button" onClick={onClick} className={className}>
+      <svg
+        className="w-3 h-3 sm:w-4 sm:h-4 mr-2"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
+      >
+        {isIOSDevice ? (
+          // Download icon for iOS
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2"
+            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+          />
+        ) : (
+          // Copy image icon for other devices
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2"
+            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+          />
+        )}
+      </svg>
+      {isIOSDevice ? "Download Image" : "Copy Image"}
+    </button>
+  );
+};
 
 type PromoImagePreviewProps = {
   formData: FormData;
@@ -24,6 +73,8 @@ export default function PromoImagePreview({
 
   const [promoText, setPromoText] = useState(defaultPromoText);
   const contentEditableRef = useRef<HTMLDivElement>(null);
+  const [templateLoaded, setTemplateLoaded] = useState(false);
+  const [templateError, setTemplateError] = useState(false);
 
   // Initialize the contentEditable div with the default text only once
   useEffect(() => {
@@ -54,42 +105,56 @@ export default function PromoImagePreview({
     if (!imageRef.current) return;
 
     try {
-      // Create the promise for image conversion first (fixing ios safari bug)
-      const makeImagePromise = async () => {
-        const buildPng = async () => {
-          if (!imageRef.current)
-            throw new Error("Image element is not available");
-          const element = document.getElementById("image-node");
+      // Import the isIOS function
+      const { isIOS } = await import("@/lib/deviceDetection");
 
-          let dataUrl = "";
-          const minDataLength = 2000000;
-          let i = 0;
-          const maxAttempts = 10;
-
-          while (dataUrl.length < minDataLength && i < maxAttempts) {
-            dataUrl = await toPng(imageRef.current, {
-              quality: 1.0,
-              pixelRatio: 2,
-              cacheBust: true,
-            });
-            i += 1;
-          }
-
-          return dataUrl;
-        };
-
-        const dataUrl = await buildPng();
-
-        const response = await fetch(dataUrl);
-        return await response.blob();
-      };
-
-      // Create ClipboardItem with the promise
-      const clipboardItem = new ClipboardItem({
-        "image/png": makeImagePromise(),
+      // Generate the image data URL
+      const dataUrl = await toPng(imageRef.current, {
+        quality: 1.0,
+        pixelRatio: 2,
+        cacheBust: true,
       });
 
-      // Perform clipboard operation
+      // For iOS devices, provide a download option instead
+      if (isIOS()) {
+        // Create a download link
+        const link = document.createElement("a");
+        link.href = dataUrl;
+        link.download = "hsrfc-promo-image.png";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        toast.success(
+          "Image downloaded! You can share it from your Photos app.",
+          {
+            position: "bottom-center",
+            duration: 5000,
+          }
+        );
+        return;
+      }
+
+      // For non-iOS devices, try using the library first
+      try {
+        await copyImageToClipboardLib(dataUrl);
+        toast.success("Image copied to clipboard!", {
+          position: "bottom-center",
+          duration: 3000,
+        });
+        return;
+      } catch (libError) {
+        console.log(
+          "Library method failed, trying native clipboard API",
+          libError
+        );
+      }
+
+      // Fallback to native clipboard API for non-iOS devices
+      const blob = await (await fetch(dataUrl)).blob();
+      const clipboardItem = new ClipboardItem({
+        [blob.type]: blob,
+      });
       await navigator.clipboard.write([clipboardItem]);
       toast.success("Image copied to clipboard!", {
         position: "bottom-center",
@@ -97,7 +162,7 @@ export default function PromoImagePreview({
       });
     } catch (error) {
       console.error("Error copying image:", error);
-      toast.error("Failed to copy image. Please try again.", {
+      toast.error("Failed to copy image. Please try again. " + error, {
         position: "bottom-center",
       });
     }
@@ -107,28 +172,10 @@ export default function PromoImagePreview({
     <div className="flex flex-col items-center space-y-3 sm:space-y-5 w-full">
       {/* Copy buttons - moved here between image and text block */}
       <div className="flex flex-col sm:flex-row justify-center space-y-2 sm:space-y-0 sm:space-x-4 w-full max-w-md">
-        <button
-          type="button"
+        <IOSAwareButton
           onClick={copyImageToClipboard}
           className="px-4 sm:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-green-600 to-green-700 text-white font-medium rounded-md hover:from-green-700 hover:to-green-800 transition-all duration-200 flex items-center justify-center shadow-md cursor-pointer text-[0.875rem]"
-        >
-          <svg
-            className="w-3 h-3 sm:w-4 sm:h-4 mr-2"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-            aria-hidden="true"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-            />
-          </svg>
-          Copy Image
-        </button>
+        />
         <button
           type="button"
           onClick={copyTextToClipboard}
@@ -169,56 +216,73 @@ export default function PromoImagePreview({
         }}
       >
         {/* Template Background */}
-        <img
-          ref={imgsrcRef}
-          src="/template.png"
-          alt="Event template"
-          className="absolute inset-0 w-full h-full object-cover"
-        />
+        <div className="absolute inset-0 w-full h-full">
+          <Image
+            src="/template.png"
+            alt="Event template"
+            fill
+            priority
+            sizes="(max-width: 640px) 100vw, 640px"
+            style={{ objectFit: "cover" }}
+            onLoad={() => setTemplateLoaded(true)}
+            onError={() => setTemplateError(true)}
+          />
 
-        <div
-          className="absolute drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,0.8)] flex flex-col justify-center items-center rotate-6 p-2"
-          style={{
-            top: "21.7%",
-            left: "44.7%",
-            width: "48.5%",
-            height:
-              "40%" /* Adjusted to ensure content fits within boundaries */,
-            overflow: "hidden" /* Added to prevent content from overflowing */,
-          }}
-        >
-          {/* Image container - takes up most of the height but not all */}
-          <div className="w-[55%] h-[55%] drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,0.8)] rounded-md overflow-hidden mb-2">
-            {/* Profile Photo */}
-            {formData.profileImage && (
-              <img
-                src={formData.profileImage}
-                alt="User avatar"
-                className="w-full h-full object-cover"
-              />
-            )}
-          </div>
-
-          {/* Text container - aligned at the bottom */}
-          <div className="flex flex-col justify-start items-center w-full rounded-2">
-            {/* Name */}
-            {formData.name && (
-              <p className="text-white drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,0.8)] font-bold text-[0.75rem] sm:text-[1rem] text-center truncate w-full px-1">
-                {formData.name}
-              </p>
-            )}
-
-            {/* Role, Company */}
-            <p className="text-white drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,0.8)] text-[0.60rem] sm:text-[0.85rem] text-center truncate w-full px-1">
-              {formData.role ? formData.role : ""}
-            </p>
-
-            {/* Role, Company */}
-            <p className="text-white drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,0.8)] text-[0.60rem] sm:text-[0.85rem] text-center truncate w-full px-1">
-              {formData.company ? formData.company : ""}
-            </p>
-          </div>
+          {templateError && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black text-white text-sm p-4 text-center">
+              Unable to load template image. Please refresh the page.
+            </div>
+          )}
         </div>
+
+        {templateLoaded && (
+          <div
+            className="absolute drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,0.8)] flex flex-col justify-center items-center rotate-6 p-2"
+            style={{
+              top: "21.7%",
+              left: "44.7%",
+              width: "48.5%",
+              height: "40%",
+              overflow: "hidden",
+              zIndex: 10 /* Ensure this is above the template image */,
+            }}
+          >
+            {/* Image container - takes up most of the height but not all */}
+            <div className="w-[55%] h-[55%] drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,0.8)] rounded-md overflow-hidden mb-2 relative">
+              {/* Profile Photo */}
+              {formData.profileImage && (
+                <div className="w-full h-full relative">
+                  <img
+                    src={formData.profileImage}
+                    alt="User avatar"
+                    className="w-full h-full object-cover"
+                    style={{ display: "block" }}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Text container - aligned at the bottom */}
+            <div className="flex flex-col justify-start items-center w-full rounded-2">
+              {/* Name */}
+              {formData.name && (
+                <p className="text-white drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,0.8)] font-bold text-[0.75rem] sm:text-[1rem] text-center truncate w-full px-1">
+                  {formData.name}
+                </p>
+              )}
+
+              {/* Role, Company */}
+              <p className="text-white drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,0.8)] text-[0.60rem] sm:text-[0.85rem] text-center truncate w-full px-1">
+                {formData.role ? formData.role : ""}
+              </p>
+
+              {/* Role, Company */}
+              <p className="text-white drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,0.8)] text-[0.60rem] sm:text-[0.85rem] text-center truncate w-full px-1">
+                {formData.company ? formData.company : ""}
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       <div
